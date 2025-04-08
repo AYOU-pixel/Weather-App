@@ -7,9 +7,11 @@ import WeatherLoading from "../components/WeatherLoading";
 import WeatherError from "../components/WeatherError";
 import "./globals.css";
 import { getWeather } from "./actions";
+import type { WeatherData } from "./actions";
+
 export default function WeatherApp() {
   const [city, setCity] = useState("");
-  const [weatherData, setWeatherData] = useState(null);
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [theme, setTheme] = useState("default");
@@ -22,7 +24,7 @@ export default function WeatherApp() {
       setIsDarkMode(darkModePreference);
       
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = (e) => setIsDarkMode(e.matches);
+      const handleChange = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
       mediaQuery.addEventListener('change', handleChange);
       return () => mediaQuery.removeEventListener('change', handleChange);
     }
@@ -31,7 +33,7 @@ export default function WeatherApp() {
   // Set theme based on weather condition
   useEffect(() => {
     if (weatherData) {
-      const condition = weatherData.weather[0].main.toLowerCase();
+      const condition = weatherData.weather[0].description.toLowerCase();
       if (condition.includes("rain") || condition.includes("drizzle")) {
         setTheme("rainy");
       } else if (condition.includes("cloud")) {
@@ -46,17 +48,21 @@ export default function WeatherApp() {
     }
   }, [weatherData]);
 
-  const handleSubmit = async (city) => {
+  const handleSubmit = async (city: string) => {
     if (!city.trim()) return;
 
     setLoading(true);
     setError("");
-    
+
     try {
       const data = await getWeather(city);
       setWeatherData(data);
-    } catch (err) {
-      setError(err.message || "Failed to fetch weather data");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || "Failed to fetch weather data");
+      } else {
+        setError("An unknown error occurred");
+      }
       setWeatherData(null);
     } finally {
       setLoading(false);
@@ -81,7 +87,6 @@ export default function WeatherApp() {
         {weatherData && (
           <WeatherDisplay 
             weatherData={weatherData} 
-            theme={theme} 
             isDarkMode={isDarkMode} 
           />
         )}
